@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const userAvatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=James";
         const userName = "James";
 
-        // 1. Create Post UI immediately
+        // Create Post UI immediately
         const post = createPostElement({
             avatar: userAvatar,
             name: userName,
@@ -146,50 +146,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         postsContainer.prepend(post);
 
-        // Keep local copy of current images for API call before resetting
         const currentImages = [...uploadedImages];
-
-        // Reset Input
         userRequest.value = '';
         uploadedImages = [];
         updatePreviewGrid();
 
-        // 2. Add loading comment
         const commentsSection = post.querySelector('.comments-section');
         const loadingId = 'loading-' + Date.now();
-        commentsSection.innerHTML = `
-            <div id="${loadingId}" class="comment">
-                <img src="https://api.dicebear.com/7.x/bottts/svg?seed=BananaBoss" class="comment-avatar">
-                <div class="comment-content">
-                    <span class="comment-author">포토샵 해드립니다</span>
-                    <div class="comment-loading">
-                        <div class="loading-dots">
-                            <div class="dot"></div>
-                            <div class="dot"></div>
-                            <div class="dot"></div>
-                        </div>
-                        <span>완벽한 편집을 진행중입니다...</span>
-                    </div>
+        const loadingEl = document.createElement('div');
+        loadingEl.id = loadingId;
+        loadingEl.className = 'comment';
+        loadingEl.innerHTML = `
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=BananaBoss" class="comment-avatar">
+            <div class="comment-content">
+                <span class="comment-author">포토샵 해드립니다</span>
+                <div class="comment-loading">
+                    <div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+                    <span>완벽한 편집을 진행중입니다...</span>
                 </div>
             </div>
         `;
+        commentsSection.appendChild(loadingEl);
 
         try {
-            // 3. Call Backend Proxy
             const result = await callGeminiNanoBanana(currentImages, text, userAvatar, userName);
+            loadingEl.remove();
 
-            // Save ID to LocalStorage
             if (result.id) {
                 let myPostIds = localStorage.getItem('myPostIds') ? localStorage.getItem('myPostIds').split(',') : [];
                 myPostIds.push(result.id);
                 localStorage.setItem('myPostIds', myPostIds.join(','));
             }
 
-            // 4. Update UI with AI result
-            const loadingEl = document.getElementById(loadingId);
-            if (loadingEl) loadingEl.remove();
-
-            const aiComment = createCommentElement(result.text, result.image);
+            const aiComment = createCommentElement(result.text, result.image, currentImages);
             commentsSection.appendChild(aiComment);
 
             const alertMsg = document.createElement('div');
@@ -200,10 +189,86 @@ document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
         } catch (err) {
             console.error(err);
-            const loadingEl = document.getElementById(loadingId);
-            if (loadingEl) {
-                loadingEl.innerHTML = `<p style="color:red; padding:10px;">에러가 발생했습니다: ${err.message}</p>`;
+            loadingEl.innerHTML = `<p style="color:red; padding:10px;">에러가 발생했습니다: ${err.message}</p>`;
+        }
+    }
+
+    // --- AI Reply & Ad Gate Logic ---
+    const supportDevModal = document.getElementById('supportDevModal');
+    const confirmRebuttal = document.getElementById('confirmRebuttal');
+    const cancelRebuttal = document.getElementById('cancelRebuttal');
+    let currentRebuttalContext = null;
+
+    cancelRebuttal.addEventListener('click', () => {
+        supportDevModal.classList.add('hidden');
+        currentRebuttalContext = null;
+    });
+
+    confirmRebuttal.addEventListener('click', async () => {
+        if (confirmRebuttal.disabled) return;
+        const { images, text, commentsSection, history } = currentRebuttalContext;
+        supportDevModal.classList.add('hidden');
+        currentRebuttalContext = null;
+        await executeRebuttal(images, text, commentsSection, history);
+    });
+
+    function showAdModal(context) {
+        currentRebuttalContext = context;
+        supportDevModal.classList.remove('hidden');
+        confirmRebuttal.disabled = true;
+        let timeLeft = 3;
+        confirmRebuttal.innerText = `전송하기 (${timeLeft}s)`;
+
+        const timer = setInterval(() => {
+            timeLeft--;
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                confirmRebuttal.disabled = false;
+                confirmRebuttal.innerText = `전송하기`;
+            } else {
+                confirmRebuttal.innerText = `전송하기 (${timeLeft}s)`;
             }
+        }, 1000);
+    }
+
+    async function executeRebuttal(images, text, commentsSection, history) {
+        const loadingId = 'loading-' + Date.now();
+        const loadingEl = document.createElement('div');
+        loadingEl.id = loadingId;
+        loadingEl.className = 'comment';
+        loadingEl.innerHTML = `
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=BananaBoss" class="comment-avatar">
+            <div class="comment-content">
+                <span class="comment-author">포토샵 해드립니다</span>
+                <div class="comment-loading">
+                    <div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+                    <span>반박 내용을 분석하며 더 고집을 부리는 중...</span>
+                </div>
+            </div>
+        `;
+        commentsSection.appendChild(loadingEl);
+
+        try {
+            const result = await callGeminiNanoBanana(images, text, null, null, history);
+            loadingEl.remove();
+
+            const userComment = document.createElement('div');
+            userComment.className = 'comment';
+            userComment.innerHTML = `
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=James" class="comment-avatar">
+                <div class="comment-content">
+                    <span class="comment-author">James</span>
+                    <span class="comment-text">${text}</span>
+                </div>
+            `;
+            commentsSection.appendChild(userComment);
+
+            const aiComment = createCommentElement(result.text, result.image, images, history.concat([{ role: 'user', text }, { role: 'ai', text: result.text }]));
+            commentsSection.appendChild(aiComment);
+            lucide.createIcons();
+        } catch (err) {
+            console.error(err);
+            loadingEl.innerHTML = `<p style="color:red; padding:10px;">에러가 발생했습니다: ${err.message}</p>`;
         }
     }
 
@@ -211,15 +276,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function createPostElement({ avatar, name, prompt, images, isPending }) {
         const postDiv = document.createElement('div');
         postDiv.className = 'post-card';
+        postDiv.dataset.originalImages = JSON.stringify(images);
         if (isPending) postDiv.style.opacity = '0.8';
 
         let imagesHtml = '';
         if (images && images.length > 0) {
-            imagesHtml = `
-                <div class="post-image-container">
-                    ${images.map(img => `<img src="${img}" class="post-image">`).join('')}
-                </div>
-            `;
+            imagesHtml = `<div class="post-image-container">${images.map(img => `<img src="${img}" class="post-image">`).join('')}</div>`;
         }
 
         postDiv.innerHTML = `
@@ -246,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return postDiv;
     }
 
-    function createCommentElement(text, images) {
+    function createCommentElement(text, images, originalImages = [], history = []) {
         const commentDiv = document.createElement('div');
         commentDiv.className = 'comment ai-comment-style';
 
@@ -273,17 +335,57 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="comment-author">포토샵 해드립니다</span>
                 <span class="comment-text">${text}</span>
                 ${imagesHtml}
+                <button class="rebuttal-btn"><i data-lucide="message-circle" size="12"></i> 반박하기</button>
+                <div class="reply-input-container hidden">
+                    <input type="text" class="reply-input" placeholder="AI에게 반박하세요...">
+                    <button class="reply-submit"><i data-lucide="send" size="14"></i></button>
+                </div>
             </div>
         `;
+
+        const rebuttalBtn = commentDiv.querySelector('.rebuttal-btn');
+        const replyContainer = commentDiv.querySelector('.reply-input-container');
+        const replyInput = commentDiv.querySelector('.reply-input');
+        const replySubmit = commentDiv.querySelector('.reply-submit');
+
+        rebuttalBtn.addEventListener('click', () => {
+            replyContainer.classList.toggle('hidden');
+            if (!replyContainer.classList.contains('hidden')) replyInput.focus();
+        });
+
+        const submitRebuttal = () => {
+            const rebuttalText = replyInput.value.trim();
+            if (!rebuttalText) return;
+            replyContainer.classList.add('hidden');
+            replyInput.value = '';
+
+            const commentsSection = commentDiv.closest('.comments-section');
+            const currentHistory = history.length > 0 ? history : [
+                { role: 'user', text: commentDiv.closest('.post-card').querySelector('.user-prompt').innerText },
+                { role: 'ai', text: text }
+            ];
+
+            showAdModal({
+                images: originalImages.length > 0 ? originalImages : JSON.parse(commentDiv.closest('.post-card').dataset.originalImages),
+                text: rebuttalText,
+                commentsSection: commentsSection,
+                history: currentHistory
+            });
+        };
+
+        replySubmit.addEventListener('click', submitRebuttal);
+        replyInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') submitRebuttal();
+        });
+
         return commentDiv;
     }
 
-    // Backend Proxy Call
-    async function callGeminiNanoBanana(images, prompt, userAvatar, userName) {
+    async function callGeminiNanoBanana(images, prompt, userAvatar, userName, history = []) {
         const response = await fetch('https://dophotoshopforyou.onrender.com/api/troll', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ images, prompt, userAvatar, userName })
+            body: JSON.stringify({ images, prompt, userAvatar, userName, history })
         });
         if (!response.ok) {
             const err = await response.json();
@@ -304,22 +406,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    lightboxClose.addEventListener('click', () => {
-        lightbox.classList.add('hidden');
-    });
+    lightboxClose.addEventListener('click', () => lightbox.classList.add('hidden'));
+    lightbox.addEventListener('click', (e) => { if (e.target === lightbox) lightbox.classList.add('hidden'); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !lightbox.classList.contains('hidden')) lightbox.classList.add('hidden'); });
 
-    lightbox.addEventListener('click', (e) => {
-        if (e.target === lightbox) {
-            lightbox.classList.add('hidden');
-        }
-    });
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && !lightbox.classList.contains('hidden')) {
-            lightbox.classList.add('hidden');
-        }
-    });
-
+    // --- File Handling ---
     function handleFile(files) {
         if (!files) return;
         Array.from(files).forEach(file => {
@@ -339,26 +430,19 @@ document.addEventListener('DOMContentLoaded', () => {
             uploadPlaceholder.classList.remove('hidden');
             return;
         }
-
         previewGrid.classList.remove('hidden');
         uploadPlaceholder.classList.add('hidden');
         previewGrid.innerHTML = '';
-
         uploadedImages.forEach((src, index) => {
             const item = document.createElement('div');
             item.className = 'preview-item';
-            item.innerHTML = `
-                <img src="${src}">
-                <div class="preview-remove" data-index="${index}">&times;</div>
-            `;
+            item.innerHTML = `<img src="${src}"><div class="preview-remove" data-index="${index}">&times;</div>`;
             previewGrid.appendChild(item);
         });
-
         previewGrid.querySelectorAll('.preview-remove').forEach(btn => {
             btn.onclick = (e) => {
                 e.stopPropagation();
-                const idx = parseInt(btn.dataset.index);
-                uploadedImages.splice(idx, 1);
+                uploadedImages.splice(parseInt(btn.dataset.index), 1);
                 updatePreviewGrid();
             };
         });
