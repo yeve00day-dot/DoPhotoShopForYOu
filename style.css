@@ -867,3 +867,76 @@ body {
         max-width: calc(100% - 40px);
     }
 }
+
+/* Terms of Service Modal */
+.tos-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    /* 세로 중앙 정렬 */
+    justify-content: center;
+    /* 가로 중앙 정렬 */
+    z-index: 3000;
+    backdrop-filter: blur(5px);
+}
+
+.tos-box {
+    background: white;
+    width: 90%;
+    max-width: 500px;
+    border-radius: 8px;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.tos-header {
+    background: var(--fb-header-blue);
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+.tos-content {
+    padding: 25px;
+    max-height: 400px;
+    overflow-y: auto;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #4b4f56;
+}
+
+.tos-list {
+    margin-top: 15px;
+    padding-left: 20px;
+}
+
+.tos-list li {
+    margin-bottom: 12px;
+}
+
+.tos-footer {
+    padding: 20px;
+    border-top: 1px solid var(--fb-border);
+}
+
+/* 모바일 모달 너비 조정 */
+@media (max-width: 900px) {
+    .tos-box {
+        width: 95%;
+    }
+}
