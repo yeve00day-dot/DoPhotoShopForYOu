@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>포토샵 해드립니다 | 세상에서 가장 킹받는 리터칭 서비스</title>
+    <meta name="description" content="당신의 소중한 사진을 가장 멍청하고 기발한 방식으로 리터칭해 드립니다. 한국어 빌런 AI의 고퀄리티(초저퀄리티) 보정을 만나보세요.">
+
+    <!-- OpenGraph Tags -->
+    <meta property="og:title" content="포토샵 해드립니다">
+    <meta property="og:description" content="세상에서 가장 킹받는 이미지 리터칭 서비스. 지금 바로 사진을 올리고 AI를 당황시켜보세요.">
+    <meta property="og:type" content="website">
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+    <!-- Facebook Blue Header -->
+    <header class="fb-header">
+        <div class="header-container">
+            <div class="left-nav">
+                <span class="p-logo">P</span>
+                <div class="search-bar">
+                    <input type="text" placeholder="친구, 장소 또는 항목을 찾아보세요">
+                    <button class="search-btn"><i data-lucide="search" size="14"></i></button>
+                </div>
+            </div>
+            <div class="right-nav">
+                <div class="user-profile">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=James" alt="User" class="nav-avatar">
+                    <span class="nav-name">James</span>
+                </div>
+                <div class="nav-separator"></div>
+                <span>홈</span>
+                <div class="nav-separator"></div>
+                <i data-lucide="users" size="18"></i>
+                <i data-lucide="message-circle" size="18"></i>
+                <i data-lucide="notifications" size="18"></i>
+                <div class="nav-separator"></div>
+                <i data-lucide="help-circle" size="18"></i>
+                <i data-lucide="chevron-down" size="18"></i>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-wrapper">
+        <div class="content-container">
+            <!-- Profile Header Section -->
+            <section class="profile-header">
+                <div class="cover-photo">
+                    <div class="cover-overlay"></div>
+                </div>
+                <div class="profile-nav-bar">
+                    <div class="profile-pic-container">
+                        <img src="https://api.dicebear.com/7.x/bottts/svg?seed=StupidAI" alt="Profile"
+                            class="profile-pic">
+                    </div>
+                    <h1 class="profile-name">포토샵 해드립니다 <i data-lucide="badge-check" class="verified-icon"></i></h1>
+                    <div class="profile-actions">
+                        <button class="action-btn active"><i data-lucide="user-check" size="14"></i> 친구</button>
+                        <button class="action-btn"><i data-lucide="message-square" size="14"></i> 메시지 보내기</button>
+                        <button class="action-btn">...</button>
+                    </div>
+                </div>
+                <div class="profile-tabs">
+                    <span class="active">타임라인</span>
+                    <span>정보</span>
+                    <span>친구 <span class="count">2.4만</span></span>
+                    <span>사진</span>
+                    <span>더 보기 <i data-lucide="chevron-down" size="12"></i></span>
+                </div>
+            </section>
+
+            <div class="feed-layout">
+                <!-- Left Sidebar -->
+                <aside class="left-sidebar">
+                    <div class="info-card">
+                        <h3><i data-lucide="globe" size="16"></i> 정보</h3>
+                        <p class="bio">당신의 소중한 사진을 '가장 멍청한' 방식으로 리터칭해 드립니다. 100% 만족하지 못하실 것을 보장합니다.</p>
+                        <ul class="info-list">
+                            <li><i data-lucide="briefcase" size="16"></i> <strong>최저 퀄리티 리터칭</strong>에서 근무</li>
+                            <li><i data-lucide="home" size="16"></i> <strong>판타지 세상</strong> 거주</li>
+                            <li><i data-lucide="rss" size="16"></i> <strong>245,678명</strong>이 팔로우함</li>
+                        </ul>
+                    </div>
+                </aside>
+
+                <!-- Main Feed -->
+                <main class="main-feed">
+                    <!-- Status Box (Upload Area) -->
+                    <div class="status-box">
+                        <div class="box-tabs">
+                            <span class="active"><i data-lucide="edit-3" size="14"></i> 게시물 만들기</span>
+                            <span id="uploadTrigger"><i data-lucide="camera" size="14"></i> 사진/동영상 추가</span>
+                            <span><i data-lucide="video" size="14"></i> 라이브 비디오</span>
+                        </div>
+                        <div class="box-content">
+                            <div class="user-row">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=James" alt="User"
+                                    class="status-avatar">
+                                <textarea id="userRequest" placeholder="James님, 무슨 포토샵을 원하시나요?"></textarea>
+                            </div>
+                            <div id="uploadZone" class="upload-zone">
+                                <div class="upload-placeholder" id="uploadPlaceholder">
+                                    <i data-lucide="plus-circle" size="32"></i>
+                                    <p>사진 선택 (드래그 & 드롭)</p>
+                                </div>
+                                <img id="imagePreview" alt="Preview" class="hidden">
+                                <input type="file" id="fileInput" accept="image/*" hidden>
+                            </div>
+                        </div>
+                        <div class="box-footer">
+                            <div class="footer-tools">
+                                <i data-lucide="user-plus" size="16"></i>
+                                <i data-lucide="map-pin" size="16"></i>
+                                <i data-lucide="smile" size="16"></i>
+                            </div>
+                            <button id="submitBtn" class="post-btn">게시물 올리기</button>
+                        </div>
+                    </div>
+
+                    <div id="postsContainer">
+                        <!-- Dynamic posts will load here -->
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <!-- Processing Overlay -->
+    <div id="processingOverlay" class="processing-overlay hidden">
+        <div class="fb-loader">
+            <div class="loader-inner"></div>
+            <p>AI가 엉뚱한 생각을 하는 중...</p>
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        <div class="footer-container">
+            <p>&copy; 2026 포토샵 해드립니다. All rights reserved.</p>
+            <p>본 서비스는 재미를 위해 제작된 AI 실험 프로젝트입니다.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

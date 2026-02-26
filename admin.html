@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard | 포토샵 해드립니다</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .admin-header {
+            background: #fff;
+            padding: 20px;
+            border-bottom: 2px solid #ebedf0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .pending-grid {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .admin-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            overflow: hidden;
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .admin-card img {
+            max-width: 400px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .admin-info {
+            flex: 1;
+        }
+
+        .admin-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .approve-btn {
+            background: #42b72a;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .delete-btn {
+            background: #f02849;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .auth-overlay {
+            position: fixed;
+            inset: 0;
+            background: #f0f2f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .auth-box {
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .auth-box input {
+            padding: 10px;
+            font-size: 16px;
+            width: 100%;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+
+<body style="background: #f0f2f5;">
+    <div id="authOverlay" class="auth-overlay">
+        <div class="auth-box">
+            <h2>관리자 인증</h2>
+            <p style="margin-bottom: 20px; font-size: 14px; color: #65676b;">비밀번호를 입력하세요</p>
+            <input type="password" id="adminPass" placeholder="Password">
+            <button onclick="login()" class="post-btn" style="width: 100%;">인증하기</button>
+        </div>
+    </div>
+
+    <div id="adminPanel" style="display:none;">
+        <header class="admin-header">
+            <div>
+                <h1>포토샵 해드립니다 - Moderation</h1>
+                <div style="margin-top: 10px;">
+                    <button id="tabPending" class="approve-btn" onclick="switchTab('pending')">대기 중</button>
+                    <button id="tabApproved" class="delete-btn" style="background:#65676b;"
+                        onclick="switchTab('approved')">승인됨</button>
+                </div>
+            </div>
+            <button onclick="logout()"
+                style="background:none; border:none; color:#65676b; cursor:pointer;">로그아웃</button>
+        </header>
+
+        <main class="pending-grid" id="pendingList">
+            <!-- Posts will be loaded here -->
+            <p style="text-align: center; color: #65676b;">로드 중...</p>
+        </main>
+    </div>
+
+    <script>
+        let currentPass = '';
+        let currentStatus = 'pending';
+
+        function login() {
+            currentPass = document.getElementById('adminPass').value;
+            loadPostsByStatus('pending');
+        }
+
+        function switchTab(status) {
+            currentStatus = status;
+            document.getElementById('tabPending').style.background = (status === 'pending') ? '#42b72a' : '#65676b';
+            document.getElementById('tabApproved').style.background = (status === 'approved') ? '#42b72a' : '#65676b';
+            loadPostsByStatus(status);
+        }
+
+        async function loadPostsByStatus(status) {
+            try {
+                const res = await fetch(`http://localhost:3000/api/admin/posts?password=${currentPass}&status=${status}`);
+                if (!res.ok) throw new Error();
+                const posts = await res.json();
+
+                document.getElementById('authOverlay').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'block';
+
+                renderPosts(posts, status);
+            } catch {
+                alert('비밀번호가 틀렸거나 서버에 연결할 수 없습니다.');
+            }
+        }
+
+        function renderPosts(posts, status) {
+            const container = document.getElementById('pendingList');
+            if (posts.length === 0) {
+                container.innerHTML = `<p style="text-align: center; color: #65676b;">${status === 'pending' ? '대기 중인' : '승인된'} 게시물이 없습니다.</p>`;
+                return;
+            }
+
+            container.innerHTML = posts.map(post => `
+                <div class="admin-card">
+                    <div>
+                        <p style="margin-bottom: 5px;"><strong>사용자 요청:</strong> ${post.prompt}</p>
+                        <img src="${post.aiImage}" alt="AI Result">
+                    </div>
+                    <div class="admin-info">
+                        <h3>AI 답변:</h3>
+                        <p style="background: #f02849; color: white; padding: 15px; border-radius: 8px; font-style: italic;">
+                            ${post.aiText}
+                        </p>
+                        <div class="admin-controls">
+                            ${status === 'pending' ? `<button class="approve-btn" onclick="moderate('${post.id}', 'approve')">승인하기</button>` : ''}
+                            <button class="delete-btn" onclick="moderate('${post.id}', 'delete')">삭제하기</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function moderate(id, action) {
+            if (!confirm(`정말로 이 게시물을 ${action === 'approve' ? '승인' : '삭제'}하시겠습니까?`)) return;
+
+            try {
+                const res = await fetch('http://localhost:3000/api/admin/moderate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: currentPass, id, action })
+                });
+
+                if (res.ok) {
+                    loadPostsByStatus(currentStatus);
+                } else {
+                    alert('처리 중 오류가 발생했습니다.');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function logout() {
+            location.reload();
+        }
+    </script>
+</body>
+
+</html>
