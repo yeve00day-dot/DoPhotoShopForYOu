@@ -2,11 +2,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const uploadZone = document.getElementById('uploadZone');
     const uploadTrigger = document.getElementById('uploadTrigger');
     const fileInput = document.getElementById('fileInput');
-    const imagePreview = document.getElementById('imagePreview');
     const uploadPlaceholder = document.getElementById('uploadPlaceholder');
     const userRequest = document.getElementById('userRequest');
     const submitBtn = document.getElementById('submitBtn');
     const postsContainer = document.getElementById('postsContainer');
+    const previewGrid = document.getElementById('previewGrid');
+    let uploadedImages = []; // Store array of base64 images
 
     // --- Terms of Service Logic ---
     const tosModal = document.getElementById('tosModal');
@@ -23,8 +24,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Upload Logic ---
     uploadTrigger.addEventListener('click', () => fileInput.click());
-    uploadZone.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', handleFile);
+    uploadZone.addEventListener('click', (e) => {
+        if (e.target.closest('.preview-remove')) return;
+        fileInput.click();
+    });
+    fileInput.addEventListener('change', (e) => handleFile(e.target.files));
 
     // --- Paste Logic ---
     document.addEventListener('paste', (e) => {
@@ -32,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < items.length; i++) {
             if (items[i].type.indexOf('image') !== -1) {
                 const file = items[i].getAsFile();
-                handleFile({ target: { files: [file] } });
+                handleFile([file]);
                 break;
             }
         }
@@ -51,14 +55,13 @@ document.addEventListener('DOMContentLoaded', () => {
     uploadZone.addEventListener('drop', (e) => {
         e.preventDefault();
         uploadZone.style.background = '#f5f6f7';
-        const file = e.dataTransfer.files[0];
-        if (file) handleFile({ target: { files: [file] } });
+        const files = e.dataTransfer.files;
+        if (files.length > 0) handleFile(files);
     });
 
     // --- Initialization: Load Approved Feed ---
     async function loadFeed() {
         try {
-            // Get IDs from LocalStorage to include my pending posts
             const savedIds = localStorage.getItem('myPostIds') || '';
             const res = await fetch(`https://dophotoshopforyou.onrender.com/api/posts?include=${savedIds}`);
             const posts = await res.json();
@@ -73,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         avatar: postData.userAvatar,
                         name: postData.userName,
                         prompt: postData.prompt,
-                        image: postData.originalImage,
+                        images: Array.isArray(postData.originalImage) ? postData.originalImage : (postData.originalImage ? [postData.originalImage] : []),
                         isPending: isMyPending
                     });
                     postsContainer.appendChild(postEl);
@@ -123,10 +126,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function postContent() {
         const text = userRequest.value.trim();
-        const image = imagePreview.src;
-        const hasImage = !imagePreview.classList.contains('hidden');
+        const hasImages = uploadedImages.length > 0;
 
-        if (!text && !hasImage) {
+        if (!text && !hasImages) {
             alert('사진을 업로드하거나 요청 내용을 입력해주세요!');
             return;
         }
@@ -134,21 +136,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const userAvatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=James";
         const userName = "James";
 
-        // 1. Create Post UI immediately (Session-only pending view)
+        // 1. Create Post UI immediately
         const post = createPostElement({
             avatar: userAvatar,
             name: userName,
             prompt: text,
-            image: hasImage ? image : null,
+            images: [...uploadedImages],
             isPending: true
         });
         postsContainer.prepend(post);
 
+        // Keep local copy of current images for API call before resetting
+        const currentImages = [...uploadedImages];
+
         // Reset Input
         userRequest.value = '';
-        imagePreview.src = '';
-        imagePreview.classList.add('hidden');
-        uploadPlaceholder.classList.remove('hidden');
+        uploadedImages = [];
+        updatePreviewGrid();
 
         // 2. Add loading comment
         const commentsSection = post.querySelector('.comments-section');
@@ -172,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             // 3. Call Backend Proxy
-            const result = await callGeminiNanoBanana(image, text, userAvatar, userName);
+            const result = await callGeminiNanoBanana(currentImages, text, userAvatar, userName);
 
             // Save ID to LocalStorage
             if (result.id) {
@@ -204,10 +208,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Helper UI Functions ---
-    function createPostElement({ avatar, name, prompt, image, isPending }) {
+    function createPostElement({ avatar, name, prompt, images, isPending }) {
         const postDiv = document.createElement('div');
         postDiv.className = 'post-card';
         if (isPending) postDiv.style.opacity = '0.8';
+
+        let imagesHtml = '';
+        if (images && images.length > 0) {
+            imagesHtml = `
+                <div class="post-image-container">
+                    ${images.map(img => `<img src="${img}" class="post-image">`).join('')}
+                </div>
+            `;
+        }
 
         postDiv.innerHTML = `
             <div class="post-header">
@@ -219,11 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="post-body">
                 <div class="user-prompt">${prompt}</div>
-                ${image ? `
-                    <div class="post-image-container">
-                        <img src="${image}" class="post-image">
-                    </div>
-                ` : ''}
+                ${imagesHtml}
             </div>
             <div class="post-footer">
                 <div class="footer-actions">
@@ -237,18 +246,23 @@ document.addEventListener('DOMContentLoaded', () => {
         return postDiv;
     }
 
-    function createCommentElement(text, image) {
+    function createCommentElement(text, images) {
         const commentDiv = document.createElement('div');
         commentDiv.className = 'comment ai-comment-style';
 
-        let imageHtml = '';
-        if (image) {
-            imageHtml = `
+        let imagesHtml = '';
+        if (images) {
+            const imageArray = Array.isArray(images) ? images : [images];
+            imagesHtml = `
                 <div class="comment-image-wrapper">
-                    <img src="${image}" class="comment-image">
-                    <a href="${image}" download="photoshop_villain_result.jpg" class="download-link">
-                        <i data-lucide="download" size="14"></i> 저장하기
-                    </a>
+                    ${imageArray.map(img => `
+                        <div class="comment-image-item">
+                            <img src="${img}" class="comment-image">
+                            <a href="${img}" download="photoshop_villain_result.jpg" class="download-link">
+                                <i data-lucide="download" size="14"></i> 저장
+                            </a>
+                        </div>
+                    `).join('')}
                 </div>
             `;
         }
@@ -258,18 +272,18 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="comment-content">
                 <span class="comment-author">포토샵 해드립니다</span>
                 <span class="comment-text">${text}</span>
-                ${imageHtml}
+                ${imagesHtml}
             </div>
         `;
         return commentDiv;
     }
 
     // Backend Proxy Call
-    async function callGeminiNanoBanana(base64Image, prompt, userAvatar, userName) {
+    async function callGeminiNanoBanana(images, prompt, userAvatar, userName) {
         const response = await fetch('https://dophotoshopforyou.onrender.com/api/troll', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: base64Image, prompt, userAvatar, userName })
+            body: JSON.stringify({ images, prompt, userAvatar, userName })
         });
         if (!response.ok) {
             const err = await response.json();
@@ -283,7 +297,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const lightboxImg = document.getElementById('lightboxImg');
     const lightboxClose = document.querySelector('.lightbox-close');
 
-    // Global event delegation for post/comment images
     document.addEventListener('click', (e) => {
         if (e.target.classList.contains('post-image') || e.target.classList.contains('comment-image')) {
             lightboxImg.src = e.target.src;
@@ -301,23 +314,53 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Close on Escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && !lightbox.classList.contains('hidden')) {
             lightbox.classList.add('hidden');
         }
     });
 
-    function handleFile(e) {
-        const file = (e.target && e.target.files) ? e.target.files[0] : (e.dataTransfer && e.dataTransfer.files[0]);
-        if (!file || !file.type.startsWith('image/')) return;
+    function handleFile(files) {
+        if (!files) return;
+        Array.from(files).forEach(file => {
+            if (!file.type.startsWith('image/')) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                uploadedImages.push(event.target.result);
+                updatePreviewGrid();
+            };
+            reader.readAsDataURL(file);
+        });
+    }
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            imagePreview.src = event.target.result;
-            imagePreview.classList.remove('hidden');
-            uploadPlaceholder.classList.add('hidden');
-        };
-        reader.readAsDataURL(file);
+    function updatePreviewGrid() {
+        if (uploadedImages.length === 0) {
+            previewGrid.classList.add('hidden');
+            uploadPlaceholder.classList.remove('hidden');
+            return;
+        }
+
+        previewGrid.classList.remove('hidden');
+        uploadPlaceholder.classList.add('hidden');
+        previewGrid.innerHTML = '';
+
+        uploadedImages.forEach((src, index) => {
+            const item = document.createElement('div');
+            item.className = 'preview-item';
+            item.innerHTML = `
+                <img src="${src}">
+                <div class="preview-remove" data-index="${index}">&times;</div>
+            `;
+            previewGrid.appendChild(item);
+        });
+
+        previewGrid.querySelectorAll('.preview-remove').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                const idx = parseInt(btn.dataset.index);
+                uploadedImages.splice(idx, 1);
+                updatePreviewGrid();
+            };
+        });
     }
 });

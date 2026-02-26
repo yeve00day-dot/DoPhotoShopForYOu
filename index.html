@@ -115,10 +115,10 @@
                             <div id="uploadZone" class="upload-zone">
                                 <div class="upload-placeholder" id="uploadPlaceholder">
                                     <i data-lucide="plus-circle" size="32"></i>
-                                    <p>사진 선택 (드래그 & 드롭)</p>
+                                    <p>사진 선택 (여러 장 가능, 드래그 & 드롭)</p>
                                 </div>
-                                <img id="imagePreview" alt="Preview" class="hidden">
-                                <input type="file" id="fileInput" accept="image/*" hidden>
+                                <div id="previewGrid" class="preview-grid hidden"></div>
+                                <input type="file" id="fileInput" accept="image/*" multiple hidden>
                             </div>
                         </div>
                         <div class="box-footer">
