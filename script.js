@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // Get IDs from LocalStorage to include my pending posts
             const savedIds = localStorage.getItem('myPostIds') || '';
-            const res = await fetch(`http://localhost:3000/api/posts?include=${savedIds}`);
+            const res = await fetch(`https://dophotoshopforyou.onrender.com/api/posts?include=${savedIds}`);
             const posts = await res.json();
             postsContainer.innerHTML = '';
 
@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Backend Proxy Call
     async function callGeminiNanoBanana(base64Image, prompt, userAvatar, userName) {
-        const response = await fetch('http://localhost:3000/api/troll', {
+        const response = await fetch('https://dophotoshopforyou.onrender.com/api/troll', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: base64Image, prompt, userAvatar, userName })

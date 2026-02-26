@@ -146,7 +146,7 @@
 
         async function loadPostsByStatus(status) {
             try {
-                const res = await fetch(`http://localhost:3000/api/admin/posts?password=${currentPass}&status=${status}`);
+                const res = await fetch(`https://dophotoshopforyou.onrender.com/api/admin/posts?password=${currentPass}&status=${status}`);
                 if (!res.ok) throw new Error();
                 const posts = await res.json();
 
@@ -190,7 +190,7 @@
             if (!confirm(`정말로 이 게시물을 ${action === 'approve' ? '승인' : '삭제'}하시겠습니까?`)) return;
 
             try {
-                const res = await fetch('http://localhost:3000/api/admin/moderate', {
+                const res = await fetch('https://dophotoshopforyou.onrender.com/api/admin/moderate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ password: currentPass, id, action })
