@@ -978,16 +978,20 @@ body {
     }
 }
 
-/* Image Lightbox */
+/* Image Lightbox Clickability */
 .post-image,
-.comment-image {
-    cursor: pointer;
+.comment-image,
+.post-image-container img,
+.comment-image-wrapper img {
+    cursor: pointer !important;
     transition: opacity 0.2s;
 }
 
 .post-image:hover,
-.comment-image:hover {
-    opacity: 0.95;
+.comment-image:hover,
+.post-image-container img:hover,
+.comment-image-wrapper img:hover {
+    opacity: 0.9 !important;
 }
 
 .lightbox-overlay {
