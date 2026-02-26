@@ -278,6 +278,36 @@ document.addEventListener('DOMContentLoaded', () => {
         return await response.json();
     }
 
+    // --- Image Lightbox Logic ---
+    const lightbox = document.getElementById('imageLightbox');
+    const lightboxImg = document.getElementById('lightboxImg');
+    const lightboxClose = document.querySelector('.lightbox-close');
+
+    // Global event delegation for post/comment images
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('post-image') || e.target.classList.contains('comment-image')) {
+            lightboxImg.src = e.target.src;
+            lightbox.classList.remove('hidden');
+        }
+    });
+
+    lightboxClose.addEventListener('click', () => {
+        lightbox.classList.add('hidden');
+    });
+
+    lightbox.addEventListener('click', (e) => {
+        if (e.target === lightbox) {
+            lightbox.classList.add('hidden');
+        }
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !lightbox.classList.contains('hidden')) {
+            lightbox.classList.add('hidden');
+        }
+    });
+
     function handleFile(e) {
         const file = (e.target && e.target.files) ? e.target.files[0] : (e.dataTransfer && e.dataTransfer.files[0]);
         if (!file || !file.type.startsWith('image/')) return;
