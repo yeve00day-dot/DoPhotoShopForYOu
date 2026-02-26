@@ -8,6 +8,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const submitBtn = document.getElementById('submitBtn');
     const postsContainer = document.getElementById('postsContainer');
 
+    // --- Terms of Service Logic ---
+    const tosModal = document.getElementById('tosModal');
+    const agreeBtn = document.getElementById('agreeBtn');
+
+    if (!localStorage.getItem('tosAgreed')) {
+        tosModal.classList.remove('hidden');
+    }
+
+    agreeBtn.addEventListener('click', () => {
+        localStorage.setItem('tosAgreed', 'true');
+        tosModal.classList.add('hidden');
+    });
+
     // --- Upload Logic ---
     uploadTrigger.addEventListener('click', () => fileInput.click());
     uploadZone.addEventListener('click', () => fileInput.click());
