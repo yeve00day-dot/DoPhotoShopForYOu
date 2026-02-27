@@ -1,0 +1,8 @@
+.env
+node_modules/
+posts.json
+security.log
+*.log
+.DS_Store
+*.tmp
+새 텍스트 문서.txt
